@@ -4,6 +4,7 @@ import (
 	"strings"
 	"strconv"
 	"fmt"
+	"unicode/utf8"
 )
 
 func checkIfNumber(ch rune) (int, bool) {
@@ -27,12 +28,16 @@ func decompressString(input string) {
 			output += chString
 			isInvert = false
 		} else if count, isNumber := checkIfNumber(ch); isNumber {
-			lastChar := output[len(output) - 1:]
-			if _, lastIsNumber := checkIfNumber(lastChar); lastIsNumber {
-				output := "";
+			if len(output) < 1 {
+				output = "";
 				break;
 			}
-			output += strings.Repeat(lastChar, count - 1);
+			lastRune, _ := utf8.DecodeLastRuneInString(output)
+			if _, lastIsNumber := checkIfNumber(lastRune); lastIsNumber {
+				output = "";
+				break;
+			}
+			output += strings.Repeat(string(lastRune), count - 1);
 		} else if chString == `\` {
 			isInvert = true
 		} else {
@@ -46,7 +51,7 @@ func decompressString(input string) {
 func main() {
 	decompressString("a4bc2d5e")
 	decompressString("abcd")
-	// decompressString("45")
+	decompressString("23")
 
 	decompressString(`qwe\4\5`)
 	decompressString(`qwe\45`)
