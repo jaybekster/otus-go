@@ -32,11 +32,8 @@ func decompressString(input string) {
 				output = "";
 				break;
 			}
+			
 			lastRune, _ := utf8.DecodeLastRuneInString(output)
-			if _, lastIsNumber := checkIfNumber(lastRune); lastIsNumber {
-				output = "";
-				break;
-			}
 			output += strings.Repeat(string(lastRune), count - 1);
 		} else if chString == `\` {
 			isInvert = true
