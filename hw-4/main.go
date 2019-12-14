@@ -7,7 +7,7 @@ import (
 	"sort"
 )
 
-func freqentWords(input string) []string {
+func Top10(input string) []string {
 	type WordsArrayItem struct {
 		name string
 		total int
@@ -43,9 +43,9 @@ func freqentWords(input string) []string {
 }
 
 func main() {
-	fmt.Println(freqentWords("hello world hello"))
+	fmt.Println(Top10("hello world hello"))
 
-	fmt.Println(freqentWords("Hello world, hellO!"))
+	fmt.Println(Top10("Hello world, hellO!"))
 
-	fmt.Println(freqentWords("ops oops oops oops oops asd asd, hellO!"))
+	fmt.Println(Top10("ops oops oops oops oops asd asd, hellO!"))
 }
