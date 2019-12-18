@@ -36,7 +36,7 @@ func (list *List) Last() *Item {
 	return list.tail
 }
 
-func (list *List) PushFront(v interface{}) {
+func (list *List) PushFront(v interface{}) *Item {
 	itemPtr := &Item{
 		value: v,
 	}
@@ -54,9 +54,11 @@ func (list *List) PushFront(v interface{}) {
 	}
 
 	list.size++
+
+	return itemPtr
 }
 
-func (list *List) PushBack(v interface{}) {
+func (list *List) PushBack(v interface{}) *Item {
 	itemPtr := &Item {
 		value: v,
 	}
@@ -71,6 +73,8 @@ func (list *List) PushBack(v interface{}) {
 	}
 
 	list.size++
+
+	return itemPtr
 }
 
 func (list *List) Remove(item *Item) {
