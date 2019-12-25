@@ -1,71 +1,73 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-	"sync"
 	"time"
 )
 
 type Worker = func() error
 
-func ExecuteWorker(wg sync.WaitGroup, task Worker, finish chan <- interface{}) {
-	finish <- task()
+func ExecuteWorker(task chan Worker, result chan error) {
+	go func() {
+		for {
+			task, ok := <- task
 
-	wg.Done()
+			if !ok {
+				return
+			}
+
+			result <- task()
+		}
+	}()
 }
 
 func Run(tasks []Worker, limit, maxErrors int) {
-	var wg sync.WaitGroup
+	start := make(chan Worker, limit - 1)
+	finish := make(chan error, limit)
+	done := make(chan interface{})
 
-	start := make(chan Worker, limit)
-	finish := make(chan interface{}, limit)
-	done := make(chan interface{}, limit)
+	var counter int
 	var errors int
 
 	for i := 0; i < limit; i++ {
-		go func() {
-			for {
-				select {
-				case task := <- start:
-					ExecuteWorker(wg, task, finish)
-				case <- done:
-					return
-				}
-			}
-		}()
+		ExecuteWorker(start, finish)
 	}
 
-	for _, task := range tasks {
-		select {
-		case start <- task:
-			wg.Add(1)
-		case err := <- finish:
+
+	go func() {
+		for _, task := range tasks {
+			start <- task
+		}
+	}()
+
+	go func() {
+		for err := range finish {
+			counter += 1
 			if err != nil {
+				fmt.Println(err)
 				errors += 1
-
 			}
-			
-			if errors >= maxErrors {
-				for i := 0; i < limit; i++ {
-					done <- nil
-				}
 
-				break;
+			if errors == maxErrors || counter == len(tasks) {
+				done <- nil
 			}
 		}
-	}
+	}()
 
-	wg.Wait()
+	<- done
+	close(start)
+	close(finish)
 }
 
 func main() {
 	var task1, task2, task3, task4 Worker;
 
 	task1 = func() error {
-		time.Sleep(4 * time.Second)
+		time.Sleep(6 * time.Second)
 		fmt.Println("Task 1")
 
-		return nil;
+		return errors.New("error from task1")
 	}
 
 	task2 = func() error {
@@ -89,5 +91,5 @@ func main() {
 		return nil
 	}
 
-	Run([]Worker{task1, task2, task3, task4}, 3, 1)
+	Run([]Worker{task1, task2, task3, task4}, 2, 1)
 }
