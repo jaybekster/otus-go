@@ -11,86 +11,64 @@ type Worker = func() error
 
 func Run(tasks []Worker, limit, maxErrors int) {
 	taskCh := make(chan Worker)
-	resultCh := make(chan error)
+	resultCh := make(chan error, limit -1)
 	closeCh := make(chan struct{})
-	closedCh := make(chan struct{}, limit)
+	closedCh := make(chan struct{})
 
-	isHibernating := false
-
-	// allocate the tickets:
 	for i := 0; i < limit; i++ {
 		go func(taskCh <- chan Worker, resultCh chan <- error, closeCh <- chan struct{}, closedCh chan <- struct{}) {
 			defer func() {
-				fmt.Println("send to closed")
 				closedCh <- struct{}{}
 			}()
 
+
 			for {
-
 				select {
-				
-				case task, ok := <- taskCh:
-					if !ok {
-						return
-					}
-
-					value :=  task()
-
-					if !isHibernating {
-						resultCh <- value
-					}
-				
+				case task := <- taskCh:
+					resultCh <- task()
 				case <- closeCh:
 					return
-	
-				default:
-	
 				}
 			}
-
 		}(taskCh, resultCh, closeCh, closedCh)
 	}
 
+	func() {
+		var counter int
+		var errors int
+		var inProgress int
 
-	go func() {
-		defer func() {
-			fmt.Println("end iterating")
-		}()
+		i := 0
 
-		for _, task := range tasks {
-			select {
-			case taskCh <- task:
-			case <- closeCh:
+		for ; i < limit; i++ {
+			inProgress++
+			taskCh <- tasks[i]
+		}
+
+		for {
+			err := <- resultCh
+			inProgress--
+			counter++
+
+			fmt.Println("Complteted tasks:", counter)
+			fmt.Println("Result: ", err)
+
+			if err != nil {
+				errors++
+			}
+
+			if counter == len(tasks) || errors == maxErrors {
+				close(closeCh)
 				return
+			} else if len(tasks) - counter - inProgress > 0 {
+				inProgress++
+				taskCh <- tasks[limit -1 + counter]
 			}
 		}
 	}()
 
-
-	var counter int
-	var errors int
-
-	for {
-		err := <- resultCh
-
-		counter += 1
-
-		if err != nil {
-			errors += 1
-		}
-
-		if counter == len(tasks) || errors == maxErrors {
-			isHibernating = true
-			close(closeCh)
-			break;
-		}
-	}
-
-	fmt.Println("wait")
-
 	for i := 0; i < limit; i +=1 {
 		<- closedCh
-		fmt.Println("closed success")
 	}
 }
 
@@ -133,7 +111,7 @@ func main() {
 		return nil
 	}
 
-	Run([]Worker{task1, task2, task3, task4, task5, task6}, 5, 1)
+	Run([]Worker{task1, task2, task3, task4, task5, task6}, 2, 1)
 
 	fmt.Println("number of goroutines: ", runtime.NumGoroutine())
 }
