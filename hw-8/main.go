@@ -9,18 +9,13 @@ import (
 
 type Worker = func() error
 
-
-func Allocate(start <- chan Worker) {
-	go func(start <- chan Worker) {
-		
-	}(start)
-}
-
 func Run(tasks []Worker, limit, maxErrors int) {
 	taskCh := make(chan Worker)
 	resultCh := make(chan error)
 	closeCh := make(chan struct{})
 	closedCh := make(chan struct{}, limit)
+
+	isHibernating := false
 
 	// allocate the tickets:
 	for i := 0; i < limit; i++ {
@@ -31,10 +26,19 @@ func Run(tasks []Worker, limit, maxErrors int) {
 			}()
 
 			for {
+
 				select {
 				
-				case task := <- taskCh:
-					resultCh <- task()
+				case task, ok := <- taskCh:
+					if !ok {
+						return
+					}
+
+					value :=  task()
+
+					if !isHibernating {
+						resultCh <- value
+					}
 				
 				case <- closeCh:
 					return
@@ -54,21 +58,29 @@ func Run(tasks []Worker, limit, maxErrors int) {
 		}()
 
 		for _, task := range tasks {
-			taskCh <- task;
+			select {
+			case taskCh <- task:
+			case <- closeCh:
+				return
+			}
 		}
 	}()
 
 
 	var counter int
+	var errors int
 
 	for {
 		err := <- resultCh
 
-		fmt.Println(err)
 		counter += 1
 
-		if counter == len(tasks) {
-			fmt.Println("end")
+		if err != nil {
+			errors += 1
+		}
+
+		if counter == len(tasks) || errors == maxErrors {
+			isHibernating = true
 			close(closeCh)
 			break;
 		}
@@ -78,6 +90,7 @@ func Run(tasks []Worker, limit, maxErrors int) {
 
 	for i := 0; i < limit; i +=1 {
 		<- closedCh
+		fmt.Println("closed success")
 	}
 }
 
@@ -102,25 +115,25 @@ func main() {
 		return errors.New("error from task3")
 	}
 
-	// task4 = func() error {
-	// 	time.Sleep(4 * time.Second)
+	task4 := func() error {
+		time.Sleep(4 * time.Second)
 
-	// 	return nil
-	// }
+		return nil
+	}
 
-	// task5 := func() error {
-	// 	time.Sleep(4 * time.Second)
+	task5 := func() error {
+		time.Sleep(4 * time.Second)
 
-	// 	return nil
-	// }
+		return nil
+	}
 
-	// task6 := func() error {
-	// 	time.Sleep(4 * time.Second)
+	task6 := func() error {
+		time.Sleep(4 * time.Second)
 
-	// 	return nil
-	// }
+		return nil
+	}
 
-	Run([]Worker{task1, task2, task3}, 2, 10)
+	Run([]Worker{task1, task2, task3, task4, task5, task6}, 5, 1)
 
 	fmt.Println("number of goroutines: ", runtime.NumGoroutine())
 }
