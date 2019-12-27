@@ -4,92 +4,123 @@ import (
 	"errors"
 	"fmt"
 	"time"
+	"runtime"
 )
 
 type Worker = func() error
 
-func ExecuteWorker(task chan Worker, result chan error) {
-	go func() {
-		for {
-			task, ok := <- task
 
-			if !ok {
-				return
-			}
-
-			result <- task()
-		}
-	}()
+func Allocate(start <- chan Worker) {
+	go func(start <- chan Worker) {
+		
+	}(start)
 }
 
 func Run(tasks []Worker, limit, maxErrors int) {
-	start := make(chan Worker, limit - 1)
-	finish := make(chan error, limit)
-	done := make(chan interface{})
+	taskCh := make(chan Worker)
+	resultCh := make(chan error)
+	closeCh := make(chan struct{})
+	closedCh := make(chan struct{}, limit)
 
-	var counter int
-	var errors int
-
+	// allocate the tickets:
 	for i := 0; i < limit; i++ {
-		ExecuteWorker(start, finish)
+		go func(taskCh <- chan Worker, resultCh chan <- error, closeCh <- chan struct{}, closedCh chan <- struct{}) {
+			defer func() {
+				fmt.Println("send to closed")
+				closedCh <- struct{}{}
+			}()
+
+			for {
+				select {
+				
+				case task := <- taskCh:
+					resultCh <- task()
+				
+				case <- closeCh:
+					return
+	
+				default:
+	
+				}
+			}
+
+		}(taskCh, resultCh, closeCh, closedCh)
 	}
 
 
 	go func() {
+		defer func() {
+			fmt.Println("end iterating")
+		}()
+
 		for _, task := range tasks {
-			start <- task
+			taskCh <- task;
 		}
 	}()
 
-	go func() {
-		for err := range finish {
-			counter += 1
-			if err != nil {
-				fmt.Println(err)
-				errors += 1
-			}
 
-			if errors == maxErrors || counter == len(tasks) {
-				done <- nil
-			}
+	var counter int
+
+	for {
+		err := <- resultCh
+
+		fmt.Println(err)
+		counter += 1
+
+		if counter == len(tasks) {
+			fmt.Println("end")
+			close(closeCh)
+			break;
 		}
-	}()
+	}
 
-	<- done
-	close(start)
-	close(finish)
+	fmt.Println("wait")
+
+	for i := 0; i < limit; i +=1 {
+		<- closedCh
+	}
 }
 
 func main() {
-	var task1, task2, task3, task4 Worker;
+	var task1, task2, task3 Worker;
 
 	task1 = func() error {
 		time.Sleep(6 * time.Second)
-		fmt.Println("Task 1")
 
-		return errors.New("error from task1")
+		return nil
 	}
 
 	task2 = func() error {
 		time.Sleep(3 * time.Second)
-		fmt.Println("Task 2")
 
 		return nil
 	}
 
 	task3 = func() error {
-		time.Sleep(2 * time.Second)
-		fmt.Println("Task 3")
-
-		return nil
-	}
-
-	task4 = func() error {
 		time.Sleep(1 * time.Second)
-		fmt.Println("Task 4")
 
-		return nil
+		return errors.New("error from task3")
 	}
 
-	Run([]Worker{task1, task2, task3, task4}, 2, 1)
+	// task4 = func() error {
+	// 	time.Sleep(4 * time.Second)
+
+	// 	return nil
+	// }
+
+	// task5 := func() error {
+	// 	time.Sleep(4 * time.Second)
+
+	// 	return nil
+	// }
+
+	// task6 := func() error {
+	// 	time.Sleep(4 * time.Second)
+
+	// 	return nil
+	// }
+
+	Run([]Worker{task1, task2, task3}, 2, 10)
+
+	fmt.Println("number of goroutines: ", runtime.NumGoroutine())
 }
