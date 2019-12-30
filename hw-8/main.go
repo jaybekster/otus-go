@@ -11,43 +11,44 @@ type Worker = func() error
 
 func Run(tasks []Worker, limit, maxErrors int) {
 	taskCh := make(chan Worker)
-	resultCh := make(chan error, limit -1)
-	closeCh := make(chan struct{})
-	closedCh := make(chan struct{})
+	taskResultCh := make(chan error)
+	hibernateCh := make(chan struct{})
+	canExitCh := make(chan struct{})
 
 	for i := 0; i < limit; i++ {
-		go func(taskCh <- chan Worker, resultCh chan <- error, closeCh <- chan struct{}, closedCh chan <- struct{}) {
+		go func(taskCh <- chan Worker, taskResultCh chan <- error, hibernateCh <- chan struct{}, canExitCh chan <- struct{}) {
 			defer func() {
-				closedCh <- struct{}{}
+				canExitCh <- struct{}{}
 			}()
 
 
 			for {
 				select {
 				case task := <- taskCh:
-					resultCh <- task()
-				case <- closeCh:
+					taskResultCh <- task()
+				case <- hibernateCh:
 					return
 				}
 			}
-		}(taskCh, resultCh, closeCh, closedCh)
+		}(taskCh, taskResultCh, hibernateCh, canExitCh)
 	}
+
+	go func() {
+		for _, task := range tasks {
+			select {
+			case taskCh <- task:
+			case <- hibernateCh:
+				return
+			}
+		}
+	}()
 
 	func() {
 		var counter int
 		var errors int
-		var inProgress int
-
-		i := 0
-
-		for ; i < limit; i++ {
-			inProgress++
-			taskCh <- tasks[i]
-		}
 
 		for {
-			err := <- resultCh
-			inProgress--
+			err := <- taskResultCh
 			counter++
 
 			fmt.Println("Complteted tasks:", counter)
@@ -57,18 +58,23 @@ func Run(tasks []Worker, limit, maxErrors int) {
 				errors++
 			}
 
+			fmt.Println("counter", counter)
+
 			if counter == len(tasks) || errors == maxErrors {
-				close(closeCh)
-				return
-			} else if len(tasks) - counter - inProgress > 0 {
-				inProgress++
-				taskCh <- tasks[limit -1 + counter]
+				close(hibernateCh)
+				break;
 			}
 		}
 	}()
 
-	for i := 0; i < limit; i +=1 {
-		<- closedCh
+
+	for i := 0; i < limit; i += 1 {
+		select {
+		case <- canExitCh:
+			continue
+		case <- taskResultCh:
+			i = i - 1
+		}
 	}
 }
 
