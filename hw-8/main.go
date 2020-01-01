@@ -21,7 +21,6 @@ func Run(tasks []Worker, limit, maxErrors int) {
 				canExitCh <- struct{}{}
 			}()
 
-
 			for {
 				select {
 				case task := <- taskCh:
@@ -67,8 +66,7 @@ func Run(tasks []Worker, limit, maxErrors int) {
 		}
 	}()
 
-
-	for i := 0; i < limit; i += 1 {
+	for i := 0; i < limit; i++ {
 		select {
 		case <- canExitCh:
 			continue
