@@ -2,55 +2,50 @@ package main
 
 import (
 	"strings"
-	"strconv"
 	"fmt"
-	"unicode/utf8"
+	"unicode"
+	"sort"
 )
 
-func checkIfNumber(ch rune) (int, bool) {
-	number, err := strconv.Atoi(string(ch))
-
-	if err != nil {
-		return 0, false;
+func Top10(input string) []string {
+	type WordsArrayItem struct {
+		name string
+		total int
 	}
 
-	return number, true;
-}
+	counter := make(map[string]int)
+	wordsArray := []WordsArrayItem{}
+	output := make([]string, 0)
 
-func decompressString(input string) {
-	var output string
-	var isInvert bool
+	for _, word := range strings.FieldsFunc(input, func(c rune) bool {
+		return !unicode.IsLetter(c)
+	}) {
+		key := strings.ToLower(word)
+		counter[key] = counter[key] + 1;
+	}
 
-	for _, ch := range input {
-		chString := string(ch)
+	for k, v := range counter {
+		wordsArray = append(wordsArray, WordsArrayItem{ k, v })
+	}
 
-		if isInvert {
-			output += chString
-			isInvert = false
-		} else if count, isNumber := checkIfNumber(ch); isNumber {
-			if len(output) < 1 {
-				output = "";
-				break;
-			}
-			
-			lastRune, _ := utf8.DecodeLastRuneInString(output)
-			output += strings.Repeat(string(lastRune), count - 1);
-		} else if chString == `\` {
-			isInvert = true
-		} else {
-			output += chString;
+	sort.SliceStable(wordsArray, func(i, j int) bool {
+		return wordsArray[i].total > wordsArray[j].total
+	})
+
+	for i := 0; i < 10; i++ {
+		if len(wordsArray) <= i {
+			break;
 		}
+		output = append(output, wordsArray[i].name)
 	}
 
-	fmt.Println(output);
+	return output
 }
 
 func main() {
-	decompressString("a4bc2d5e")
-	decompressString("abcd")
-	decompressString("23")
+	fmt.Println(Top10("hello world hello"))
 
-	decompressString(`qwe\4\5`)
-	decompressString(`qwe\45`)
-	decompressString(`qwe\\5`)
+	fmt.Println(Top10("Hello world, hellO!"))
+
+	fmt.Println(Top10("ops oops oops oops oops asd asd, hellO!"))
 }
