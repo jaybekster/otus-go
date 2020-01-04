@@ -13,8 +13,8 @@ var from, to string
 var offset, limit int64
 
 func init() {
-	flag.StringVar(&from, "from", "a.txt", "original file")
-	flag.StringVar(&to, "to", "b.txt", "destionation file")
+	flag.StringVar(&from, "from", "", "original file")
+	flag.StringVar(&to, "to", "", "destionation file")
 	flag.Int64Var(&offset, "offset", 0, "offset in original file")
 	flag.Int64Var(&limit, "limit", 0, "number of copying bytes")
 }
@@ -44,6 +44,10 @@ func isFlagPassed(name string) bool {
 }
 
 func Copy(from, to string, limit, offset int64) error {
+	if from == "" || to == "" {
+		return errors.New("\"from\" and \"to\" arguments are required")
+	}
+
 	fileRead, err := os.Open(from)
 	defer fileRead.Close()
 
