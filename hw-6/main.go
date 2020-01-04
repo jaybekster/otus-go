@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"fmt"
+	"errors"
 	"io"
 	"os"
 	"log"
@@ -14,7 +14,7 @@ var offset, limit int64
 
 func init() {
 	flag.StringVar(&from, "from", "a.txt", "original file")
-	flag.StringVar(&to, "to", "b.txt", "destionation file file")
+	flag.StringVar(&to, "to", "b.txt", "destionation file")
 	flag.Int64Var(&offset, "offset", 0, "offset in original file")
 	flag.Int64Var(&limit, "limit", 0, "number of copying bytes")
 }
@@ -22,7 +22,13 @@ func init() {
 func main() {
 	flag.Parse()
 
-	Copy()
+	err := Copy(from, to, limit, offset);
+
+	if err == io.EOF {
+		log.Printf("%s", "Copying is finished")
+	} else if err != nil {
+		log.Fatalf("%s: %s", "An error occured in copying proccess", err)
+	}
 }
 
 func isFlagPassed(name string) bool {
@@ -37,50 +43,44 @@ func isFlagPassed(name string) bool {
     return found
 }
 
-func copyN(dst *os.File, src *os.File) (written int64, err error) {
-
-	if isFlagPassed("limit") {
-		written, err = io.CopyN(dst, src, limit)
-	} else {
-
-		if fi, err := src.Stat(); err != nil {
-			return 0, err
-		} else {
-			size := fi.Size()
-			fmt.Println(size)
-			written, err = io.CopyN(dst, src, size)
-		}
-	}
-
-	return written, err
-}
-
-func Copy() {
+func Copy(from, to string, limit, offset int64) error {
 	fileRead, err := os.Open(from)
 	defer fileRead.Close()
 
 	if err != nil {
-		log.Fatalf("Can not open source file")
+		return errors.New("Can not open source file")
 	}
 
 	fileWrite, err := os.Create(to)
 	defer fileWrite.Close()
 
 	if err != nil {
-		log.Fatalf("Can not open destination file")
+		return errors.New("Can not open destination file")
 	}
 
-	bar := pb.Full.Start64(limit)
+	var size, start int64
+
+	if fi, err := fileRead.Stat(); err == nil {
+		size = fi.Size()
+	} else {
+		return err
+	}
+
+	fileRead.Seek(offset, 0)
+
+	if isFlagPassed("limit") {
+		start = offset + limit
+	} else {
+		limit = size
+		start = limit - offset
+	}
+
+	bar := pb.Full.Start64(start)
 	barReader := bar.NewProxyReader(fileRead)
 
-	_, error := copyN(fileWrite, barReader)
+	_, err = io.CopyN(fileWrite, barReader, limit)
 
 	bar.Finish()
 
-	if error == io.EOF {
-		log.Printf("%s", "Copying is finished")
-	} else if error != nil {
-		fmt.Println(error)
-		log.Fatalf("%s", "An error occured in copying proccess")
-	}
+	return err
 }
