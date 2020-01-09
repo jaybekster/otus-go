@@ -8,7 +8,7 @@ import (
 	"reflect"
 )
 
-func testOneWorkerOneError(t *testing.T) {
+func TestOneWorkerOneError(t *testing.T) {
 	expectResut := []int{1, 2, 3, 4}
 	testResult := make([]int, 0)
 
@@ -62,7 +62,7 @@ func testOneWorkerOneError(t *testing.T) {
 	}
 }
 
-func exitOnCompleteAll(t *testing.T) {
+func ExitOnCompleteAll(t *testing.T) {
 	expectResut := []int{1, 2, 3, 4}
 	testResult := make([]int, 0)
 
@@ -109,7 +109,7 @@ func exitOnCompleteAll(t *testing.T) {
 	}
 }
 
-func twoWorkersTwoErrors(t *testing.T) {
+func TwoWorkersTwoErrors(t *testing.T) {
 	expectResut := []int{1, 2, 3, 4}
 	testResult := make([]int, 0)
 
