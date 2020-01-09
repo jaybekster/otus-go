@@ -62,7 +62,7 @@ func TestOneWorkerOneError(t *testing.T) {
 	}
 }
 
-func ExitOnCompleteAll(t *testing.T) {
+func  TestExitOnCompleteAll(t *testing.T) {
 	expectResut := []int{1, 2, 3, 4}
 	testResult := make([]int, 0)
 
@@ -109,7 +109,7 @@ func ExitOnCompleteAll(t *testing.T) {
 	}
 }
 
-func TwoWorkersTwoErrors(t *testing.T) {
+func TestTwoWorkersTwoErrors(t *testing.T) {
 	expectResut := []int{1, 2, 3, 4}
 	testResult := make([]int, 0)
 
@@ -122,7 +122,7 @@ func TwoWorkersTwoErrors(t *testing.T) {
 	}
 
 	task2 := func() error {
-		time.Sleep(1 * time.Second)
+		time.Sleep(2 * time.Second)
 
 		testResult = append(testResult, 2)
 
@@ -130,7 +130,7 @@ func TwoWorkersTwoErrors(t *testing.T) {
 	}
 
 	task3 := func() error {
-		time.Sleep(1 * time.Second)
+		time.Sleep(3 * time.Second)
 
 		testResult = append(testResult, 3)
 
@@ -138,15 +138,31 @@ func TwoWorkersTwoErrors(t *testing.T) {
 	}
 
 	task4 := func() error {
+		time.Sleep(4 * time.Second)
+
+		testResult = append(testResult, 4)
+
+		return nil
+	}
+
+	task5 := func() error {
 		time.Sleep(1 * time.Second)
 
-		testResult = append(testResult, 1)
+		testResult = append(testResult, 5)
+
+		return nil
+	}
+
+	task6 := func() error {
+		time.Sleep(2 * time.Second)
+
+		testResult = append(testResult, 6)
 
 		return nil
 	}
 
 
-	Run([]Worker{task1, task2, task3, task4}, 2, 2)
+	Run([]Worker{task1, task2, task3, task4, task5, task6}, 2, 2)
 
 	isEqual := reflect.DeepEqual(expectResut, testResult)
 
