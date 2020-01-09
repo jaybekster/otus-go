@@ -11,7 +11,7 @@ type Worker = func() error
 
 func Run(tasks []Worker, limit, maxErrors int) {
 	taskCh := make(chan Worker)
-	taskResultCh := make(chan error)
+	taskResultCh := make(chan error, limit)
 	hibernateCh := make(chan struct{})
 	canExitCh := make(chan struct{})
 
@@ -42,7 +42,7 @@ func Run(tasks []Worker, limit, maxErrors int) {
 		}
 	}()
 
-	func() {
+	go func() {
 		var counter int
 		var errors int
 
@@ -61,18 +61,13 @@ func Run(tasks []Worker, limit, maxErrors int) {
 
 			if counter == len(tasks) || errors == maxErrors {
 				close(hibernateCh)
-				break;
+				return
 			}
 		}
 	}()
 
 	for i := 0; i < limit; i++ {
-		select {
-		case <- canExitCh:
-			continue
-		case <- taskResultCh:
-			i = i - 1
-		}
+		<- canExitCh
 	}
 }
 
@@ -115,7 +110,7 @@ func main() {
 		return nil
 	}
 
-	Run([]Worker{task1, task2, task3, task4, task5, task6}, 2, 1)
+	Run([]Worker{task1, task2, task3, task4, task5, task6}, 3, 1)
 
 	fmt.Println("number of goroutines: ", runtime.NumGoroutine())
 }
