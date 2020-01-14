@@ -27,7 +27,7 @@ func main() {
 	if err == io.EOF {
 		log.Printf("%s", "Copying is finished")
 	} else if err != nil {
-		log.Fatalf("%s: %s", "An error occured in copying proccess", err)
+		log.Fatalf("%s: %s", "an error occured in copying proccess", err)
 	}
 }
 
@@ -45,29 +45,31 @@ func isFlagPassed(name string) bool {
 
 func Copy(from, to string, limit, offset int64) error {
 	if from == "" || to == "" {
-		return errors.New("\"from\" and \"to\" arguments are required")
+		return errors.New(`"from" and "to" arguments are required`)
 	}
 
 	fileRead, err := os.Open(from)
+	
+	if err != nil {
+		return errors.New("сan not open source file")
+	}
+	
 	defer fileRead.Close()
 
-	if err != nil {
-		return errors.New("Can not open source file")
-	}
-
 	fileWrite, err := os.Create(to)
-	defer fileWrite.Close()
-
+	
 	if err != nil {
-		return errors.New("Can not open destination file")
+		return errors.New("сan not open destination file")
 	}
+	
+	defer fileWrite.Close()
 
 	var size, start int64
 
-	if fi, err := fileRead.Stat(); err == nil {
-		size = fi.Size()
-	} else {
+	if fi, err := fileRead.Stat(); err != nil {
 		return err
+	} else {
+		size = fi.Size()
 	}
 
 	fileRead.Seek(offset, 0)
