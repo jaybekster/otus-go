@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"os"
-	"fmt"
+	"log"
 	"io/ioutil"
 	"path"
 	"os/exec"
@@ -15,16 +15,24 @@ func init() {
 
 func main() {
 	command := flag.Arg(1);
-	// path := flag.Arg(0);
+	path := flag.Arg(0);
 
-	// fmt.Println(command, path);
+	var err error
 
-	// fmt.Println(ReadDir(path));
+	commandWithArgs := []string{command};
+	
+	commandWithArgs = append(commandWithArgs, flag.Args()[2:]...)
+	
+	envs, err := ReadDir(path)
 
-	cmdError := RunCmd(command, flag.Args()[2:]...)
+	if err != nil {
+		log.Fatalf("Failed read directory %s\n", err)
+	}
 
-	if cmdError != nil {
-		fmt.Println(cmdError, "error")
+	err = RunCmd(commandWithArgs, envs)
+
+	if err != nil {
+		log.Fatalf("cmd.Run() failed with %s\n", err)
 	}
 }
 
@@ -56,8 +64,15 @@ func ReadDir(dir string) (map[string]string, error) {
 	return envs, nil
 }
 
-func RunCmd(command string, args ...string) error {
-	cmd := exec.Command(command, args...)
+func RunCmd(commandWithArgs []string, env map[string]string) error {
+	var envsArray []string
+
+	for key, value := range env {
+		envsArray = append(envsArray, key + "=" + value)
+	}
+
+	cmd := exec.Command(commandWithArgs[0], commandWithArgs[1:]...)
+	cmd.Env = append(os.Environ(), envsArray...)
 
 	cmd.Stdout = os.Stdout;
 
