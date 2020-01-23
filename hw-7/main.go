@@ -1,13 +1,31 @@
 package main
 
 import (
+	"flag"
+	"os"
+	"fmt"
 	"io/ioutil"
 	"path"
 	"os/exec"
 )
 
-func main() {
+func init() {
+	flag.Parse();
+}
 
+func main() {
+	command := flag.Arg(1);
+	// path := flag.Arg(0);
+
+	// fmt.Println(command, path);
+
+	// fmt.Println(ReadDir(path));
+
+	cmdError := RunCmd(command, flag.Args()[2:]...)
+
+	if cmdError != nil {
+		fmt.Println(cmdError, "error")
+	}
 }
 
 func ReadDir(dir string) (map[string]string, error) {
@@ -38,9 +56,14 @@ func ReadDir(dir string) (map[string]string, error) {
 	return envs, nil
 }
 
-func RunCmd(command []string, env map[string]string) int {
+func RunCmd(command string, args ...string) error {
+	cmd := exec.Command(command, args...)
 
-	cmd := exec.Command(command)
+	cmd.Stdout = os.Stdout;
 
-	cmd.Run()
+	if err := cmd.Run(); err != nil {
+		return err;
+	}
+
+	return nil;
 }
