@@ -78,7 +78,9 @@ func RunCmd(commandWithArgs []string, env map[string]string) error {
 	cmd := exec.Command(commandWithArgs[0], commandWithArgs[1:]...)
 	cmd.Env = append(os.Environ(), envsArray...)
 
-	cmd.Stdout = os.Stdout;
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
 
 	if err := cmd.Run(); err != nil {
 		return err;
