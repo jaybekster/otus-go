@@ -66,9 +66,13 @@ func ReadDir(dir string) (map[string]string, error) {
 
 func RunCmd(commandWithArgs []string, env map[string]string) error {
 	var envsArray []string
-
+	
 	for key, value := range env {
-		envsArray = append(envsArray, key + "=" + value)
+		if len(value) !=0 {
+			envsArray = append(envsArray, key + "=" + value)
+		} else {
+			os.Unsetenv(key)
+		}
 	}
 
 	cmd := exec.Command(commandWithArgs[0], commandWithArgs[1:]...)
