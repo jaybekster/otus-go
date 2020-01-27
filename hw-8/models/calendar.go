@@ -1,5 +1,6 @@
-package model
+package models
 
 type Calendar struct {
-	datesMap map[string] *Event
+	datesMap map[string][]int64
+	events map[int64]*Event
 }

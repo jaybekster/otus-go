@@ -1,5 +1,12 @@
 package main
 
+import (
+	"github.com/jaybekster/otus-go/hw-8/models"
+	"fmt"
+)
+
 func main() {
-	i := new(int)
+	cal := models.Calendar{};
+
+	fmt.Println(cal)
 }
