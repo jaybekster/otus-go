@@ -2,27 +2,28 @@ package main
 
 import (
 	"flag"
-	"os"
-	"log"
+	"fmt"
 	"io/ioutil"
-	"path"
+	"log"
+	"os"
 	"os/exec"
+	"path"
 )
 
 func init() {
-	flag.Parse();
+	flag.Parse()
 }
 
 func main() {
-	command := flag.Arg(1);
-	path := flag.Arg(0);
+	command := flag.Arg(1)
+	path := flag.Arg(0)
+
+	fmt.Println(path)
 
 	var err error
 
-	commandWithArgs := []string{command};
-	
-	commandWithArgs = append(commandWithArgs, flag.Args()[2:]...)
-	
+	commandWithArgs := append([]string{command}, flag.Args()[2:]...)
+
 	envs, err := ReadDir(path)
 
 	if err != nil {
@@ -66,10 +67,10 @@ func ReadDir(dir string) (map[string]string, error) {
 
 func RunCmd(commandWithArgs []string, env map[string]string) error {
 	var envsArray []string
-	
+
 	for key, value := range env {
-		if len(value) !=0 {
-			envsArray = append(envsArray, key + "=" + value)
+		if len(value) != 0 {
+			envsArray = append(envsArray, key+"="+value)
 		} else {
 			os.Unsetenv(key)
 		}
@@ -83,8 +84,8 @@ func RunCmd(commandWithArgs []string, env map[string]string) error {
 	cmd.Stdin = os.Stdin
 
 	if err := cmd.Run(); err != nil {
-		return err;
+		return err
 	}
 
-	return nil;
+	return nil
 }
