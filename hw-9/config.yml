@@ -1,5 +1,5 @@
 http_listen:
     ip: 127.0.0.1
-    port: 80
+    port: 8080
 log_file: log.txt
 log_level: warn
