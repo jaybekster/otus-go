@@ -7,7 +7,9 @@ import (
 	"strconv"
 	"strings"
 
+	logrusmiddleware "github.com/bakins/logrus-middleware"
 	"github.com/jaybekster/otus-go/hw-9/config"
+	"github.com/sirupsen/logrus"
 	pflag "github.com/spf13/flag"
 	"github.com/spf13/viper"
 )
@@ -29,18 +31,45 @@ func main() {
 		log.Fatalf("unable to decode into struct, %v", err)
 	}
 
-	http.HandleFunc("/hello", helloController)
+	logger := logrus.New()
 
-	err = http.ListenAndServe(
-		strings.Join([]string{configuration.Http_listen.Ip, strconv.Itoa(configuration.Http_listen.Port)}, ":"),
-		nil,
-	)
-
-	log.Printf("Server start lisening on port: %d", configuration.Http_listen.Port)
-
-	if err != nil {
-		log.Fatalf("server can not start, %v", err)
+	switch configuration.Log_level {
+	case "error":
+		logger.Level = logrus.ErrorLevel
+	case "warn":
+		logger.Level = logrus.WarnLevel
+	case "info":
+		logger.Level = logrus.InfoLevel
+	case "debug":
+		logger.Level = logrus.DebugLevel
 	}
+
+	logger.Formatter = &logrus.JSONFormatter{}
+
+	l := logrusmiddleware.Middleware{
+		Name:   "example",
+		Logger: logger,
+	}
+
+	http.Handle("/hello", l.Handler(http.HandlerFunc(helloController), "hello page"))
+
+	done := make(chan bool)
+
+	go func() {
+		err = http.ListenAndServe(
+			strings.Join([]string{configuration.Http_listen.Ip, strconv.Itoa(configuration.Http_listen.Port)}, ":"),
+			nil,
+		)
+
+		if err != nil {
+			log.Fatalf("server can not start, %v", err)
+		}
+	}()
+
+	log.Printf("Server start lisening on ip %s and port %d", configuration.Http_listen.Ip, configuration.Http_listen.Port)
+
+	<-done
+
 }
 
 func helloController(w http.ResponseWriter, r *http.Request) {
