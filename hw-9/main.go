@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -31,6 +32,12 @@ func main() {
 		log.Fatalf("unable to decode into struct, %v", err)
 	}
 
+	logFile, err := os.Create(configuration.Log_file)
+
+	if err != nil {
+		log.Fatalf("unable to create log file, %v", err)
+	}
+
 	logger := logrus.New()
 
 	switch configuration.Log_level {
@@ -43,6 +50,8 @@ func main() {
 	case "debug":
 		logger.Level = logrus.DebugLevel
 	}
+
+	logger.Out = logFile
 
 	logger.Formatter = &logrus.JSONFormatter{}
 
@@ -69,7 +78,6 @@ func main() {
 	log.Printf("Server start lisening on ip %s and port %d", configuration.Http_listen.Ip, configuration.Http_listen.Port)
 
 	<-done
-
 }
 
 func helloController(w http.ResponseWriter, r *http.Request) {

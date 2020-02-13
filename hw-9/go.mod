@@ -3,10 +3,10 @@ module github.com/jaybekster/otus-go/hw-9
 go 1.13
 
 require (
-	github.com/bakins/logrus-middleware v0.0.0-20180426214643-ce4c6f8deb07 // indirect
+	github.com/bakins/logrus-middleware v0.0.0-20180426214643-ce4c6f8deb07
 	github.com/bakins/test-helpers v0.0.0-20141028124846-af83df64dc31 // indirect
 	github.com/pelletier/go-toml v1.6.0 // indirect
-	github.com/sirupsen/logrus v1.4.2 // indirect
+	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
 	github.com/spf13/flag v0.0.0-20140426202619-916eaf9e2dc5
