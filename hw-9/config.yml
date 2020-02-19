@@ -1,5 +1,5 @@
-http_listen:
+httpListen:
     ip: 127.0.0.1
     port: 8080
-log_file: log.txt
-log_level: info
+logFile: log.txt
+logLevel: info

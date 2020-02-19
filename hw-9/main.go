@@ -32,7 +32,7 @@ func main() {
 		log.Fatalf("unable to decode into struct, %v", err)
 	}
 
-	logFile, err := os.Create(configuration.Log_file)
+	logFile, err := os.Create(configuration.LogFile)
 
 	if err != nil {
 		log.Fatalf("unable to create log file, %v", err)
@@ -40,7 +40,7 @@ func main() {
 
 	logger := logrus.New()
 
-	switch configuration.Log_level {
+	switch configuration.LogLevel {
 	case "error":
 		logger.Level = logrus.ErrorLevel
 	case "warn":
@@ -66,7 +66,7 @@ func main() {
 
 	go func() {
 		err = http.ListenAndServe(
-			strings.Join([]string{configuration.Http_listen.Ip, strconv.Itoa(configuration.Http_listen.Port)}, ":"),
+			strings.Join([]string{configuration.HttpListen.Ip, strconv.Itoa(configuration.HttpListen.Port)}, ":"),
 			nil,
 		)
 
@@ -75,7 +75,7 @@ func main() {
 		}
 	}()
 
-	log.Printf("Server start lisening on ip %s and port %d", configuration.Http_listen.Ip, configuration.Http_listen.Port)
+	log.Printf("Server start lisening on ip %s and port %d", configuration.HttpListen.Ip, configuration.HttpListen.Port)
 
 	<-done
 }
