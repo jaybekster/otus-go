@@ -9,6 +9,8 @@ import (
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/spf13/pflag"
 )
 
 func gracefulShutdown(conn net.Conn, quitCh <-chan os.Signal, cancel func()) {
@@ -71,13 +73,21 @@ func writeToServer(conn net.Conn, ctx context.Context, cancel func()) {
 	log.Println("Reading from os.stdin is finished")
 }
 
+func init() {
+	pflag.Parse()
+}
+
 func main() {
+	var timeout *int = pflag.Int("timeout", 10, "timeout to connect in seconds")
+	host := pflag.Arg(0)
+	port := pflag.Arg(1)
+
 	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(*timeout)*time.Second)
 
 	dialer := &net.Dialer{}
 
-	conn, err := dialer.DialContext(ctx, "tcp", "localhost:3302")
+	conn, err := dialer.DialContext(ctx, "tcp", host+":"+port)
 	if err != nil {
 		log.Fatalf("Cannot listen: %v", err)
 	}
