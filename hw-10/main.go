@@ -24,7 +24,7 @@ func gracefulShutdown(conn net.Conn, quitCh <-chan os.Signal, cancel func()) {
 	}
 }
 
-func readFromServer(conn net.Conn, ctx context.Context) {
+func readFromServer(conn net.Conn, ctx context.Context, cancel func()) {
 	scanner := bufio.NewScanner(conn)
 
 	for {
@@ -33,20 +33,20 @@ func readFromServer(conn net.Conn, ctx context.Context) {
 			return
 		default:
 			if !scanner.Scan() {
-				log.Printf("CANNOT SCAN read")
+				cancel()
 				return
 			}
 
 			response := scanner.Text()
 
-			log.Printf("From server %v\n", response)
-
 			fmt.Fprintf(os.Stdout, "%s\n", response)
 		}
 	}
+
+	log.Println("Writing to connestion is finished")
 }
 
-func writeToServer(conn net.Conn, ctx context.Context) {
+func writeToServer(conn net.Conn, ctx context.Context, cancel func()) {
 	scanner := bufio.NewScanner(os.Stdin)
 
 	for {
@@ -56,16 +56,19 @@ func writeToServer(conn net.Conn, ctx context.Context) {
 		default:
 			if !scanner.Scan() {
 				log.Printf("CANNOT SCAN write")
+
+				cancel()
+
 				return
 			}
 
 			cmd := scanner.Text()
 
-			log.Printf("To server %v\n", cmd)
-
 			conn.Write([]byte(fmt.Sprintf("%s\n", cmd)))
 		}
 	}
+
+	log.Println("Reading from os.stdin is finished")
 }
 
 func main() {
@@ -74,7 +77,7 @@ func main() {
 
 	dialer := &net.Dialer{}
 
-	conn, err := dialer.DialContext(ctx, "tcp", "opennet.ru:80")
+	conn, err := dialer.DialContext(ctx, "tcp", "localhost:3302")
 	if err != nil {
 		log.Fatalf("Cannot listen: %v", err)
 	}
@@ -85,8 +88,10 @@ func main() {
 	signal.Notify(quitCh, os.Interrupt)
 
 	go gracefulShutdown(conn, quitCh, cancel)
-	go writeToServer(conn, ctx)
-	go readFromServer(conn, ctx)
+	go writeToServer(conn, ctx, cancel)
+	go readFromServer(conn, ctx, cancel)
+
+	fmt.Println("done")
 
 	<-ctx.Done()
 
