@@ -37,7 +37,6 @@ func readFromServer(conn net.Conn, ctx context.Context) {
 				return
 			}
 
-			fmt.Println("scanned")
 			response := scanner.Text()
 
 			log.Printf("From server %v\n", response)
@@ -60,7 +59,6 @@ func writeToServer(conn net.Conn, ctx context.Context) {
 				return
 			}
 
-			fmt.Println("scanned")
 			cmd := scanner.Text()
 
 			log.Printf("To server %v\n", cmd)
@@ -71,14 +69,16 @@ func writeToServer(conn net.Conn, ctx context.Context) {
 }
 
 func main() {
-	conn, err := net.Dial("tcp", "opennet.ru:80")
+	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+
+	dialer := &net.Dialer{}
+
+	conn, err := dialer.DialContext(ctx, "tcp", "opennet.ru:80")
 	if err != nil {
 		log.Fatalf("Cannot listen: %v", err)
 	}
 	defer conn.Close()
-
-	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 
 	quitCh := make(chan os.Signal, 1)
 
