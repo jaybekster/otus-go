@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"sync"
 	"time"
 
 	"github.com/spf13/pflag"
@@ -24,18 +25,22 @@ func gracefulShutdown(conn net.Conn, quitCh <-chan os.Signal, cancel func()) {
 	if err != nil {
 		log.Fatalf("Cannot close connection: %v", err)
 	}
+
+	log.Println("Connection is closed")
 }
 
-func readFromServer(conn net.Conn, ctx context.Context, cancel func()) {
+func readFromServer(conn net.Conn, ctx context.Context, wg *sync.WaitGroup) {
+	defer wg.Done()
+
 	scanner := bufio.NewScanner(conn)
 
 	for {
 		select {
 		case <-ctx.Done():
+			fmt.Println("done recevied in server goroutine")
 			return
 		default:
 			if !scanner.Scan() {
-				cancel()
 				return
 			}
 
@@ -48,19 +53,18 @@ func readFromServer(conn net.Conn, ctx context.Context, cancel func()) {
 	log.Println("Writing to connestion is finished")
 }
 
-func writeToServer(conn net.Conn, ctx context.Context, cancel func()) {
+func writeToServer(conn net.Conn, ctx context.Context, wg *sync.WaitGroup) {
+	defer wg.Done()
+
 	scanner := bufio.NewScanner(os.Stdin)
 
 	for {
 		select {
 		case <-ctx.Done():
+			fmt.Println("done recevied in client goroutine")
 			return
 		default:
 			if !scanner.Scan() {
-				log.Printf("CANNOT SCAN write")
-
-				cancel()
-
 				return
 			}
 
@@ -98,12 +102,16 @@ func main() {
 	signal.Notify(quitCh, os.Interrupt)
 
 	go gracefulShutdown(conn, quitCh, cancel)
-	go writeToServer(conn, ctx, cancel)
-	go readFromServer(conn, ctx, cancel)
 
-	fmt.Println("done")
+	wg := &sync.WaitGroup{}
 
-	<-ctx.Done()
+	wg.Add(2)
+	go writeToServer(conn, ctx, wg)
+	go readFromServer(conn, ctx, wg)
+
+	log.Println("Client has been started")
+
+	wg.Wait()
 
 	log.Println("Connection is closed")
 }
