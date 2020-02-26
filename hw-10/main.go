@@ -49,14 +49,12 @@ func readFromServer(conn net.Conn, ctx context.Context, wg *sync.WaitGroup) {
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Println("done recevied in client goroutine")
+			log.Println("done received in server goroutine")
 			return
 		case response := <-scanCh:
 			log.Println(response)
 		}
 	}
-
-	log.Println("Writing to connestion is finished")
 }
 
 func writeToServer(conn net.Conn, ctx context.Context, wg *sync.WaitGroup) {
@@ -65,26 +63,26 @@ func writeToServer(conn net.Conn, ctx context.Context, wg *sync.WaitGroup) {
 	scanCh := make(chan string, 0)
 
 	go func() {
-		scanner := bufio.NewScanner(os.Stdin)
+		for {
+			scanner := bufio.NewScanner(os.Stdin)
 
-		if !scanner.Scan() {
-			return
+			if !scanner.Scan() {
+				return
+			}
+
+			scanCh <- scanner.Text()
 		}
-
-		scanCh <- scanner.Text()
 	}()
 
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Println("done recevied in client goroutine")
+			fmt.Println("done received in client goroutine")
 			return
 		case cmd := <-scanCh:
 			conn.Write([]byte(fmt.Sprintf("%s\n", cmd)))
 		}
 	}
-
-	log.Println("Reading from os.stdin is finished")
 }
 
 func main() {
