@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/spf13/pflag"
+	pflag "github.com/spf13/pflag"
 )
 
 func gracefulShutdown(conn net.Conn, quitCh <-chan os.Signal, cancel func()) {
@@ -37,11 +37,13 @@ func readFromServer(conn net.Conn, ctx context.Context, wg *sync.WaitGroup) {
 	go func() {
 		scanner := bufio.NewScanner(conn)
 
-		if !scanner.Scan() {
-			return
-		}
+		for {
+			if !scanner.Scan() {
+				return
+			}
 
-		scanCh <- scanner.Text()
+			scanCh <- scanner.Text()
+		}
 	}()
 
 	for {
@@ -50,7 +52,7 @@ func readFromServer(conn net.Conn, ctx context.Context, wg *sync.WaitGroup) {
 			fmt.Println("done recevied in client goroutine")
 			return
 		case response := <-scanCh:
-			fmt.Fprintf(os.Stdout, "%s\n", response)
+			log.Println(response)
 		}
 	}
 
@@ -85,14 +87,15 @@ func writeToServer(conn net.Conn, ctx context.Context, wg *sync.WaitGroup) {
 	log.Println("Reading from os.stdin is finished")
 }
 
-func init() {
-	pflag.Parse()
-}
-
 func main() {
 	var timeout *int = pflag.Int("timeout", 10, "timeout to connect in seconds")
+
+	pflag.Parse()
+
 	host := pflag.Arg(0)
 	port := pflag.Arg(1)
+
+	fmt.Println(timeout, host, port)
 
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(*timeout)*time.Second)
