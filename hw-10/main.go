@@ -32,20 +32,24 @@ func gracefulShutdown(conn net.Conn, quitCh <-chan os.Signal, cancel func()) {
 func readFromServer(conn net.Conn, ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	scanner := bufio.NewScanner(conn)
+	scanCh := make(chan string, 0)
+
+	go func() {
+		scanner := bufio.NewScanner(conn)
+
+		if !scanner.Scan() {
+			return
+		}
+
+		scanCh <- scanner.Text()
+	}()
 
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Println("done recevied in server goroutine")
+			fmt.Println("done recevied in client goroutine")
 			return
-		default:
-			if !scanner.Scan() {
-				return
-			}
-
-			response := scanner.Text()
-
+		case response := <-scanCh:
 			fmt.Fprintf(os.Stdout, "%s\n", response)
 		}
 	}
@@ -56,20 +60,24 @@ func readFromServer(conn net.Conn, ctx context.Context, wg *sync.WaitGroup) {
 func writeToServer(conn net.Conn, ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	scanner := bufio.NewScanner(os.Stdin)
+	scanCh := make(chan string, 0)
+
+	go func() {
+		scanner := bufio.NewScanner(os.Stdin)
+
+		if !scanner.Scan() {
+			return
+		}
+
+		scanCh <- scanner.Text()
+	}()
 
 	for {
 		select {
 		case <-ctx.Done():
 			fmt.Println("done recevied in client goroutine")
 			return
-		default:
-			if !scanner.Scan() {
-				return
-			}
-
-			cmd := scanner.Text()
-
+		case cmd := <-scanCh:
 			conn.Write([]byte(fmt.Sprintf("%s\n", cmd)))
 		}
 	}
