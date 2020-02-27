@@ -97,17 +97,15 @@ func main() {
 
 	duration, _ := time.ParseDuration(*timeout)
 
-	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, duration)
+	conn, err := net.DialTimeout("tcp", host+":"+port, duration)
 
-	dialer := &net.Dialer{}
-
-	conn, err := dialer.DialContext(ctx, "tcp", host+":"+port)
 	if err != nil {
 		log.Fatalf("Cannot listen: %v", err)
 	}
 
 	defer conn.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
 
 	quitCh := make(chan os.Signal, 1)
 
