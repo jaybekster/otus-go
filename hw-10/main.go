@@ -70,6 +70,8 @@ func writeToServer(conn net.Conn, ctx context.Context, wg *sync.WaitGroup) {
 				return
 			}
 
+			log.Println(scanner.Err())
+
 			scanCh <- scanner.Text()
 		}
 	}()
@@ -77,7 +79,7 @@ func writeToServer(conn net.Conn, ctx context.Context, wg *sync.WaitGroup) {
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Println("done received in client goroutine")
+			log.Println("done received in client goroutine")
 			return
 		case cmd := <-scanCh:
 			conn.Write([]byte(fmt.Sprintf("%s\n", cmd)))
@@ -86,17 +88,17 @@ func writeToServer(conn net.Conn, ctx context.Context, wg *sync.WaitGroup) {
 }
 
 func main() {
-	var timeout *int = pflag.Int("timeout", 10, "timeout to connect in seconds")
+	var timeout *string = pflag.String("timeout", "10s", "timeout to connect in seconds")
 
 	pflag.Parse()
 
 	host := pflag.Arg(0)
 	port := pflag.Arg(1)
 
-	fmt.Println(timeout, host, port)
+	duration, _ := time.ParseDuration(*timeout)
 
 	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, time.Duration(*timeout)*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, duration)
 
 	dialer := &net.Dialer{}
 
@@ -104,6 +106,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Cannot listen: %v", err)
 	}
+
 	defer conn.Close()
 
 	quitCh := make(chan os.Signal, 1)
